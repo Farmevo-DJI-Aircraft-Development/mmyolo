@@ -2,7 +2,7 @@ _base_ = ['../_base_/default_runtime.py', '../_base_/det_p5_tta.py']
 
 # ========================Frequently modified parameters======================
 # -----data related-----
-data_root = 'data/coco/'  # Root path of data
+data_root = '/mlcdev/nnsdk/data/coco/'  # Root path of data
 # Path of train annotation file
 train_ann_file = 'annotations/instances_train2017.json'
 train_data_prefix = 'train2017/'  # Prefix of train image path
@@ -99,8 +99,8 @@ model = dict(
     type='YOLODetector',
     data_preprocessor=dict(
         type='YOLOv5DetDataPreprocessor',
-        mean=[0., 0., 0.],
-        std=[255., 255., 255.],
+        mean=[128., 128., 128.],
+        std=[128., 128., 128.],
         bgr_to_rgb=True),
     backbone=dict(
         type='YOLOv8CSPDarknet',
@@ -109,7 +109,7 @@ model = dict(
         deepen_factor=deepen_factor,
         widen_factor=widen_factor,
         norm_cfg=norm_cfg,
-        act_cfg=dict(type='SiLU', inplace=True)),
+        act_cfg=dict(type='ReLU', inplace=True)),
     neck=dict(
         type='YOLOv8PAFPN',
         deepen_factor=deepen_factor,
@@ -118,7 +118,7 @@ model = dict(
         out_channels=[256, 512, last_stage_out_channels],
         num_csp_blocks=3,
         norm_cfg=norm_cfg,
-        act_cfg=dict(type='SiLU', inplace=True)),
+        act_cfg=dict(type='ReLU', inplace=True)),
     bbox_head=dict(
         type='YOLOv8Head',
         head_module=dict(
@@ -128,8 +128,9 @@ model = dict(
             widen_factor=widen_factor,
             reg_max=16,
             norm_cfg=norm_cfg,
-            act_cfg=dict(type='SiLU', inplace=True),
-            featmap_strides=strides),
+            act_cfg=dict(type='ReLU', inplace=True),
+            featmap_strides=strides,
+            skip_dfl=False),
         prior_generator=dict(
             type='mmdet.MlvlPointGenerator', offset=0.5, strides=strides),
         bbox_coder=dict(type='DistancePointBBoxCoder'),

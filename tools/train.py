@@ -4,6 +4,8 @@ import logging
 import os
 import os.path as osp
 
+import torch
+
 from mmdet.utils import setup_cache_size_limit_of_dynamo
 from mmengine.config import Config, DictAction
 from mmengine.logging import print_log
@@ -114,6 +116,10 @@ def main():
         # build customized runner from the registry
         # if 'runner_type' is set in the cfg
         runner = RUNNERS.build(cfg)
+
+    x = torch.rand(1, 3, 320, 320).cuda()
+    torch.onnx.export(runner.model, x, "./yolov8_test.onnx")
+    torch.save(runner.model.state_dict(), "./yolov8_test.pth")
 
     # start training
     runner.train()

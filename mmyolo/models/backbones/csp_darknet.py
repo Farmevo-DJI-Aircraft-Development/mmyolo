@@ -281,7 +281,7 @@ class YOLOv8CSPDarknet(BaseBackbone):
             spp = SPPFBottleneck(
                 out_channels,
                 out_channels,
-                kernel_sizes=5,
+                kernel_sizes=3,
                 norm_cfg=self.norm_cfg,
                 act_cfg=self.act_cfg)
             stage.append(spp)

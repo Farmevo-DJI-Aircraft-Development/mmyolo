@@ -111,9 +111,22 @@ class SPPFBottleneck(BaseModule):
         if self.conv1:
             x = self.conv1(x)
         if isinstance(self.kernel_sizes, int):
-            y1 = self.poolings(x)
-            y2 = self.poolings(y1)
-            x = torch.cat([x, y1, y2, self.poolings(y2)], dim=1)
+            if self.kernel_sizes == 5:
+                y1 = self.poolings(x)
+                y2 = self.poolings(y1)
+                x = torch.cat([x, y1, y2, self.poolings(y2)], dim=1)
+            elif self.kernel_sizes == 3:
+                y1 = self.poolings(x)
+                y1 = self.poolings(y1)
+
+                y2 = self.poolings(y1)
+                y2 = self.poolings(y2)
+
+                y3 = self.poolings(y2)
+                y3 = self.poolings(y3)
+                x = torch.cat([x, y1, y2, y3], dim=1)
+            else:
+                print("Not supported for SPPFBottleneck in yolov8")
         else:
             x = torch.cat(
                 [x] + [pooling(x) for pooling in self.poolings], dim=1)
@@ -1505,9 +1518,17 @@ class CSPLayerWithTwoConv(BaseModule):
     def forward(self, x: Tensor) -> Tensor:
         """Forward process."""
         x_main = self.main_conv(x)
-        x_main = list(x_main.split((self.mid_channels, self.mid_channels), 1))
-        x_main.extend(blocks(x_main[-1]) for blocks in self.blocks)
-        return self.final_conv(torch.cat(x_main, 1))
+        chn = x_main.data.shape[1]
+        assert chn % 2 == 0
+        chn = chn // 2
+
+        x_main_half2 = x_main[:, chn:, :, :]
+        tmp = [x_main]
+        for blocks in self.blocks:
+            x_main_half2 = blocks(x_main_half2)
+            tmp.append(x_main_half2)
+
+        return self.final_conv(torch.cat(tmp, 1))
 
 
 class BiFusion(nn.Module):

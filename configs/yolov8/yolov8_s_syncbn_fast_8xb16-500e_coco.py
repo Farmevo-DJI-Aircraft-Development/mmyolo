@@ -2,17 +2,17 @@ _base_ = ['../_base_/default_runtime.py', '../_base_/det_p5_tta.py']
 
 # ========================Frequently modified parameters======================
 # -----data related-----
-data_root = '/mlcdev/nnsdk/data/coco/'  # Root path of data
+data_root = '/home/ubuntu/dev/mmyolo/data/cn_coty_tiled/'  # Root path of data
 # Path of train annotation file
-train_ann_file = 'annotations/instances_train2017.json'
-train_data_prefix = 'train2017/'  # Prefix of train image path
+train_ann_file = 'annotations/train.json'
+train_data_prefix = 'images/train/'  # Prefix of train image path
 # Path of val annotation file
-val_ann_file = 'annotations/instances_val2017.json'
-val_data_prefix = 'val2017/'  # Prefix of val image path
+val_ann_file = 'annotations/test.json'
+val_data_prefix = 'images/test/'  # Prefix of val image path
 
-num_classes = 80  # Number of classes for classification
+num_classes = 1  # Number of classes for classification
 # Batch size of a single GPU during training
-train_batch_size_per_gpu = 16
+train_batch_size_per_gpu = 32
 # Worker to pre-fetch data for each single GPU during training
 train_num_workers = 8
 # persistent_workers must be False if num_workers is 0
@@ -21,7 +21,7 @@ persistent_workers = True
 # -----train val related-----
 # Base learning rate for optim_wrapper. Corresponding to 8xb16=64 bs
 base_lr = 0.01
-max_epochs = 500  # Maximum training epochs
+max_epochs = 50  # Maximum training epochs
 # Disable mosaic augmentation for final 10 epochs (stage 2)
 close_mosaic_epochs = 10
 
@@ -240,9 +240,10 @@ train_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
+        metainfo=dict(classes=('cn_coty',)),
         ann_file=train_ann_file,
         data_prefix=dict(img=train_data_prefix),
-        filter_cfg=dict(filter_empty_gt=False, min_size=32),
+        filter_cfg=dict(filter_empty_gt=True, min_size=8),
         pipeline=train_pipeline))
 
 test_pipeline = [
@@ -270,6 +271,7 @@ val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
+        metainfo=dict(classes=('cn_coty',)),
         test_mode=True,
         data_prefix=dict(img=val_data_prefix),
         ann_file=val_ann_file,

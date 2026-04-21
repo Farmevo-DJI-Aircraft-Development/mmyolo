@@ -2,96 +2,60 @@ _base_ = ['../_base_/default_runtime.py', '../_base_/det_p5_tta.py']
 
 # ========================Frequently modified parameters======================
 # -----data related-----
-data_root = '/home/ubuntu/dev/data/canola_offtype_tiled/'  # Root path of data
-# Path of train annotation file
+data_root = '/home/ubuntu/dev/data/canola_standcount/'
 train_ann_file = 'annotations/train.json'
-train_data_prefix = 'images/train/'  # Prefix of train image path
-# Path of val annotation file
+train_data_prefix = 'images/train/'
 val_ann_file = 'annotations/test.json'
-val_data_prefix = 'images/test/'  # Prefix of val image path
+val_data_prefix = 'images/test/'
 
-num_classes = 1  # Number of classes for classification
-# Batch size of a single GPU during training
-train_batch_size_per_gpu = 32
-# Worker to pre-fetch data for each single GPU during training
+num_classes = 1
+train_batch_size_per_gpu = 12
 train_num_workers = 8
-# persistent_workers must be False if num_workers is 0
 persistent_workers = True
 
 # -----train val related-----
-# Base learning rate for optim_wrapper. Corresponding to 8xb16=64 bs
 base_lr = 0.00125
-max_epochs = 100  # Maximum training epochs
-# Disable mosaic augmentation for final 10 epochs (stage 2)
+max_epochs = 300
 close_mosaic_epochs = 10
 
 model_test_cfg = dict(
-    # The config of multi-label for multi-class prediction.
     multi_label=True,
-    # The number of boxes before NMS
     nms_pre=30000,
-    score_thr=0.001,  # Threshold to filter out boxes.
-    nms=dict(type='nms', iou_threshold=0.5),  # NMS type and threshold
-    max_per_img=100)  # Max number of detections of each image
+    score_thr=0.001,
+    nms=dict(type='nms', iou_threshold=0.5),
+    max_per_img=500)  # raised from 100 — tiles average ~10 plants, peaks higher
 
 # ========================Possible modified parameters========================
 # -----data related-----
 img_scale = (1280, 1280)  # width, height
-# Dataset type, this will be used to define the dataset
 dataset_type = 'YOLOv5CocoDataset'
-# Batch size of a single GPU during validation
 val_batch_size_per_gpu = 1
-# Worker to pre-fetch data for each single GPU during validation
 val_num_workers = 2
 
-# Config of batch shapes. Only on val.
-# We tested YOLOv8-m will get 0.02 higher than not using it.
 batch_shapes_cfg = None
-# You can turn on `batch_shapes_cfg` by uncommenting the following lines.
-# batch_shapes_cfg = dict(
-#     type='BatchShapePolicy',
-#     batch_size=val_batch_size_per_gpu,
-#     img_size=img_scale[0],
-#     # The image scale of padding should be divided by pad_size_divisor
-#     size_divisor=32,
-#     # Additional paddings for pixel scale
-#     extra_pad_ratio=0.5)
 
 # -----model related-----
-# The scaling factor that controls the depth of the network structure
 deepen_factor = 0.33
-# The scaling factor that controls the width of the network structure
-widen_factor = 0.25  # 0.25 for a 4K model as DJI suggests. 0.5 for lower than 4K images
-# Strides of multi-scale prior box
+widen_factor = 0.50  # 0.50 for sub-4K images (tiles are 2016×2016)
 strides = [8, 16, 32]
-# The output channel of the last stage
 last_stage_out_channels = 1024
-num_det_layers = 3  # The number of model output scales
-norm_cfg = dict(type='BN', momentum=0.03, eps=0.001)  # Normalization config
+num_det_layers = 3
+norm_cfg = dict(type='BN', momentum=0.03, eps=0.001)
 
 # -----train val related-----
-affine_scale = 0.5  # YOLOv5RandomAffine scaling ratio
-# YOLOv5RandomAffine aspect ratio of width and height thres to filter bboxes
+affine_scale = 0.5
 max_aspect_ratio = 100
-tal_topk = 10  # Number of bbox selected in each level
-tal_alpha = 0.5  # A Hyper-parameter related to alignment_metrics
-tal_beta = 6.0  # A Hyper-parameter related to alignment_metrics
-# TODO: Automatically scale loss_weight based on number of detection layers
+tal_topk = 10
+tal_alpha = 0.5
+tal_beta = 6.0
 loss_cls_weight = 0.5
 loss_bbox_weight = 7.5
-# Since the dfloss is implemented differently in the official
-# and mmdet, we're going to divide loss_weight by 4.
 loss_dfl_weight = 1.5 / 4
-lr_factor = 0.01  # Learning rate scaling factor
+lr_factor = 0.01
 weight_decay = 0.0005
-# Save model checkpoint and validation intervals in stage 1
 save_epoch_intervals = 10
-# validation intervals in stage 2
 val_interval_stage2 = 1
-# The maximum checkpoints to keep.
 max_keep_ckpts = 2
-# Single-scale training is recommended to
-# be turned on, which can speed up training.
 env_cfg = dict(cudnn_benchmark=True)
 
 # ===============================Unmodified in most cases====================
@@ -134,7 +98,6 @@ model = dict(
         prior_generator=dict(
             type='mmdet.MlvlPointGenerator', offset=0.5, strides=strides),
         bbox_coder=dict(type='DistancePointBBoxCoder'),
-        # scaled based on number of detection layers
         loss_cls=dict(
             type='mmdet.CrossEntropyLoss',
             use_sigmoid=True,
@@ -207,7 +170,6 @@ train_pipeline = [
         max_shear_degree=0.0,
         scaling_ratio_range=(1 - affine_scale, 1 + affine_scale),
         max_aspect_ratio=max_aspect_ratio,
-        # img_scale is (width, height)
         border=(-img_scale[0] // 2, -img_scale[1] // 2),
         border_val=(114, 114, 114)),
     *last_transform
@@ -240,10 +202,10 @@ train_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        metainfo=dict(classes=('cn_coty',)),
+        metainfo=dict(classes=('canola',)),
         ann_file=train_ann_file,
         data_prefix=dict(img=train_data_prefix),
-        filter_cfg=dict(filter_empty_gt=True, min_size=8),
+        filter_cfg=dict(filter_empty_gt=True, min_size=0),
         pipeline=train_pipeline))
 
 test_pipeline = [
@@ -271,7 +233,7 @@ val_dataloader = dict(
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        metainfo=dict(classes=('cn_coty',)),
+        metainfo=dict(classes=('canola',)),
         test_mode=True,
         data_prefix=dict(img=val_data_prefix),
         ann_file=val_ann_file,

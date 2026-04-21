@@ -27,7 +27,7 @@ def parse_args():
         '--show', action='store_true', help='show confusion matrix')
     parser.add_argument(
         '--color-theme',
-        default='plasma',
+        default='Blues',
         help='theme of the matrix color map')
     parser.add_argument(
         '--score-thr',
@@ -174,7 +174,7 @@ def plot_confusion_matrix(confusion_matrix,
 
     num_classes = len(labels)
     fig, ax = plt.subplots(
-        figsize=(0.5 * num_classes, 0.5 * num_classes * 0.8), dpi=180)
+        figsize=(max(8, 0.5 * num_classes), max(6, 0.5 * num_classes * 0.8)), dpi=180)
     cmap = plt.get_cmap(color_theme)
     im = ax.imshow(confusion_matrix, cmap=cmap)
     plt.colorbar(mappable=im, ax=ax)
@@ -212,16 +212,15 @@ def plot_confusion_matrix(confusion_matrix,
     # draw confution matrix value
     for i in range(num_classes):
         for j in range(num_classes):
+            val = confusion_matrix[i, j]
+            cell_color = 'w' if (not np.isnan(val) and val > 50) else 'black'
             ax.text(
                 j,
                 i,
-                '{}%'.format(
-                    int(confusion_matrix[
-                        i,
-                        j]) if not np.isnan(confusion_matrix[i, j]) else -1),
+                '{}%'.format(int(val) if not np.isnan(val) else -1),
                 ha='center',
                 va='center',
-                color='w',
+                color=cell_color,
                 size=7)
 
     ax.set_ylim(len(confusion_matrix) - 0.5, -0.5)  # matplotlib>3.1.1
@@ -229,7 +228,8 @@ def plot_confusion_matrix(confusion_matrix,
     fig.tight_layout()
     if save_dir is not None:
         plt.savefig(
-            os.path.join(save_dir, 'confusion_matrix.png'), format='png')
+            os.path.join(save_dir, 'confusion_matrix.png'), format='png',
+            bbox_inches='tight')
     if show:
         plt.show()
 
